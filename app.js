@@ -1,70 +1,58 @@
-const express = require("express");
-const db = require("./db");
-
+const express = require('express');
+const bodyParser = require('body-parser');
+const db = require('./database');
 
 const app = express();
+app.use(bodyParser.json());
 
-
-app.use(express.text());
-app.use(express.json());
-
-
-
-app.get("/", (req, res) => {
-  res.send("Pagina de Inicio");
+app.get('/products', (req, res) => {
+  res.json(db.getAllProducts());
 });
 
 
-app.get("/Producto", (req, res) => {
-  res.json(db);
-});
-
-app.get("/Producto/:id", (req, res) => {
+app.get('/products/:id', (req, res) => {
   const id = parseInt(req.params.id);
+  const product = db.getProductById(id);
+  if (product) {
+    res.json(product);
+  } else {
+    res.status(404).send('Producto no encontrado');
+  }
+});
 
-  const getProductos = db.find((productos) => productos.id === id);
-  res.json(getProductos);
+app.post('/products', (req, res) => {
+  const { name, quantity, price } = req.body;
+  if (!name || quantity === undefined || price === undefined) {
+    return res.status(400).send('complete todos campos');
+  }
+  const newProduct = db.addProduct({ name, quantity, price });
+  res.status(201).json(newProduct);
 });
 
 
-app.post("/Producto", (req, res) => {
-  const { id, productos, quantity, price } = req.body;
-
-      const newProducto = db.push({ id: id, productos: productos, quantity:quantity, price:price});
-    console.log(newProducto);
-    res.json({ message: "Producto creado con éxito" });
-  });
- 
-
-app.put("/Producto/:id", (req, res) => {
+app.put('/products/:id', (req, res) => {
   const id = parseInt(req.params.id);
-  const { productos, price } = req.body;
-  const{quantity} = req.body
-  const getProductos = db.find((productos, quantity, price) => productos.id === id);
-  const getQuantity = db.find((quantity) => quantity.id === id);
-  const getPrice = db.find((price) => price.id === id);
-
-
-  getProductos.productos = productos;
-  console.log(getProductos);
-  getQuantity.quantity = quantity;
-  console.log(getQuantity)
-  getPrice.price = price;
-  console.log(getPrice)
-  res.json({ message: "Producto actualizado" });
+  const { name, quantity, price } = req.body;
+  const updatedProduct = db.updateProduct(id, { name, quantity, price });
+  if (updatedProduct) {
+    res.json(updatedProduct);
+  } else {
+    res.status(403).send('Producto no encontrado');
+  }
 });
 
-app.delete("/user/:id", (req, res) => {
+
+app.delete('/products/:id', (req, res) => {
   const id = parseInt(req.params.id);
-
-  const getProductos = db.find((productos) => productos.id === id);
-  const ProductosIndex = db.indexOf(getProductos);
-  const deletedProductos = db.splice(productosIndex, 1);
-
-  res.json({ message: "Producto eliminado", deletedProductos });
+  const success = db.deleteProduct(id);
+  if (success) {
+    res.status(205).send();
+  } else {
+    res.status(403).send('Producto no encontrado');
+  }
 });
 
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`servidor en puerto ${PORT}`));
-﻿
+const PORT = 4000;
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+});
